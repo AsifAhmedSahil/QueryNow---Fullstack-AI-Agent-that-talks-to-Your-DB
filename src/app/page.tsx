@@ -5,3 +5,4 @@ export default function Home() {
    <h2>welcome sql agent</h2>
   );
 }
+
