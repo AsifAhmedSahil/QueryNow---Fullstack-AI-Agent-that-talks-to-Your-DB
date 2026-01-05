@@ -1,6 +1,13 @@
-import { streamText, UIMessage, convertToModelMessages, tool, stepCountIs } from "ai";
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from "ai";
 import { openai } from "@ai-sdk/openai";
 import z from "zod";
+import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -22,7 +29,7 @@ export async function POST(req: Request) {
     model: openai("gpt-4o"),
     messages: await convertToModelMessages(messages),
     system: SYSTEM_PROMT,
-    stopWhen:stepCountIs(5),
+    stopWhen: stepCountIs(5),
     tools: {
       schema: tool({
         description: "call this tool to get database schema information",
@@ -58,7 +65,12 @@ CREATE TABLE sales (
         execute: async ({ query }) => {
           console.log("Query", query);
 
-          return query;
+          // Safety check: allow only SELECT queries - Guardrails
+          const forbidden = /(insert|update|delete|drop|alter|truncate)/i;
+          if (forbidden.test(query)) throw new Error("Unsafe query blocked");
+
+          // make db call
+          return await db.execute(query);
         },
       }),
     },
