@@ -11,31 +11,43 @@ import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
+const SYSTEM_PROMPT = `
+You are a SQL query agent.
 
-  const SYSTEM_PROMT = `You are an expert SQL agent that helps users to query their database using natural language.
+Database tables:
+- products(id, name, category, price, stock, created_at)
+- sales(id, product_id, quantity, total_amount, sale_date, customer_name, region)
 
-  ${new Date().toLocaleString('sv-SE')}
+Rules:
+- Generate only SELECT queries
+- Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE
+- Always use the db tool to execute queries
+- Never return raw SQL to the user
+- Give short, clear answers only
 
+Query behavior:
+- Always perform case-insensitive matching for text fields
+- Use ILIKE or LOWER() when filtering by name, category, or region
+- Prefer partial matching using ILIKE '%value%' for product names
+- If an exact match returns no rows, retry once using partial match
 
-  You have access to following tools:
- 
-  1. db tool - call this tool to query the database.
-  2. schema tool - call this tool to get the database schema which will help you to write sql query.
+Safety:
+- Do not guess or fabricate data
+- If no data is found, clearly say so
 
-  Rules:
-  -generate only SELECT queries (no INSERT,UPDATE,DELETE,DROP)
-  - Pass in valid SQL syntax in db tool.
-  - Important : To query database call db tool, Don't return just SQL query.
-  - Can't return direct query , just give me short answer.
+Style:
+- Be precise and deterministic
+- Do not add explanations or extra commentary
+`;
 
-  Always respond in a helpful, conversational tone while being technically accurate.
-  `;
 
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"), // model ta sosta 4o theke
+    maxOutputTokens:300, // cost kom hoi aita dile
+      temperature: 0, // un necessary kichu blbe na, 
     messages: await convertToModelMessages(messages),
-    system: SYSTEM_PROMT,
-    stopWhen: stepCountIs(5),
+    system: SYSTEM_PROMPT,
+    stopWhen: stepCountIs(3),
     tools: {
       schema: tool({
         description: "call this tool to get database schema information",
