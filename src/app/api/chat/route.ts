@@ -13,6 +13,10 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const SYSTEM_PROMT = `You are an expert SQL agent that helps users to query their database using natural language.
+
+  ${new Date().toLocaleString('sv-SE')}
+
+
   You have access to following tools:
  
   1. db tool - call this tool to query the database.
@@ -20,7 +24,9 @@ export async function POST(req: Request) {
 
   Rules:
   -generate only SELECT queries (no INSERT,UPDATE,DELETE,DROP)
-  - return valid SQLite systax
+  - Pass in valid SQL syntax in db tool.
+  - Important : To query database call db tool, Don't return just SQL query.
+  - Can't return direct query , just give me short answer.
 
   Always respond in a helpful, conversational tone while being technically accurate.
   `;
